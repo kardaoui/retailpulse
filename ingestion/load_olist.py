@@ -47,9 +47,8 @@ def main() -> None:
     """Point d'entrée principal : charge tous les CSV disponibles."""
     engine = get_engine()
 
-    with engine.connect() as conn:
+    with engine.begin() as conn:
         conn.execute(text("CREATE SCHEMA IF NOT EXISTS raw"))
-        conn.commit()
 
     loaded, skipped = 0, 0
     for filename, table in CSV_TABLE_MAP.items():
