@@ -5,16 +5,16 @@ with source as (
 transformed as (
     select
         order_id,
-        order_item_id::int           as order_item_id,
+        nullif(order_item_id, '')::int            as order_item_id,
         product_id,
         seller_id,
-        shipping_limit_date::timestamp as shipping_limit_date,
-        price::numeric               as price,
-        freight_value::numeric       as freight_value
+        nullif(shipping_limit_date, '')::timestamp as shipping_limit_date,
+        nullif(price, '')::numeric                as price,
+        nullif(freight_value, '')::numeric        as freight_value
     from source
     where order_id is not null
-      and price::numeric >= 0
-      and freight_value::numeric >= 0
+      and nullif(price, '')::numeric >= 0
+      and nullif(freight_value, '')::numeric >= 0
 )
 
 select * from transformed

@@ -34,10 +34,7 @@ with DAG(
 
     run_great_expectations = BashOperator(
         task_id="run_great_expectations",
-        bash_command=(
-            "cd /opt/great_expectations && "
-            "great_expectations checkpoint run olist_checkpoint"
-        ),
+        bash_command="python /opt/great_expectations/validate_olist.py",
     )
 
     dbt_run_staging = BashOperator(

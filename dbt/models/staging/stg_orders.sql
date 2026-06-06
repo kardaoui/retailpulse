@@ -7,11 +7,12 @@ transformed as (
         order_id,
         customer_id,
         order_status,
-        order_purchase_timestamp::timestamp          as order_purchase_timestamp,
-        order_approved_at::timestamp                 as order_approved_at,
-        order_delivered_carrier_date::timestamp      as order_delivered_carrier_date,
-        order_delivered_customer_date::timestamp     as order_delivered_customer_date,
-        order_estimated_delivery_date::timestamp     as order_estimated_delivery_date
+        -- Les CSV chargent les dates vides comme '' : nullif évite l'échec du cast
+        nullif(order_purchase_timestamp, '')::timestamp      as order_purchase_timestamp,
+        nullif(order_approved_at, '')::timestamp             as order_approved_at,
+        nullif(order_delivered_carrier_date, '')::timestamp  as order_delivered_carrier_date,
+        nullif(order_delivered_customer_date, '')::timestamp as order_delivered_customer_date,
+        nullif(order_estimated_delivery_date, '')::timestamp as order_estimated_delivery_date
     from source
     where order_id is not null
       and customer_id is not null
