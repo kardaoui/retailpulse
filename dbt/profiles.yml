@@ -1,0 +1,12 @@
+retailpulse:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: "{{ env_var('POSTGRES_HOST', 'postgres-retailpulse') }}"
+      port: 5432
+      user: "{{ env_var('POSTGRES_USER', 'retailpulse') }}"
+      password: "{{ env_var('POSTGRES_PASSWORD', 'retailpulse') }}"
+      dbname: "{{ env_var('POSTGRES_DB', 'retailpulse') }}"
+      schema: staging
+      threads: 4

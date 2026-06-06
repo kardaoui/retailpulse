@@ -1,0 +1,28 @@
+# Données brutes (non versionnées)
+data/raw/
+
+# Variables d'environnement
+.env
+
+# Great Expectations (données non versionnées)
+great_expectations/uncommitted/
+
+# dbt
+dbt/target/
+dbt/dbt_packages/
+dbt/logs/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# Airflow
+airflow/logs/
+
+# OS
+.DS_Store
+Thumbs.db

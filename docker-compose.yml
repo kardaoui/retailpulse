@@ -1,0 +1,164 @@
+version: '3.8'
+
+x-airflow-common: &airflow-common
+  build: .
+  environment: &airflow-common-env
+    AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres-airflow/airflow
+    AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@postgres-airflow/airflow
+    AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
+    AIRFLOW__CORE__FERNET_KEY: ''
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
+    AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+    AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth'
+    # RetailPulse DB
+    POSTGRES_HOST: postgres-retailpulse
+    POSTGRES_USER: ${POSTGRES_USER:-retailpulse}
+    POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-retailpulse}
+    POSTGRES_DB: ${POSTGRES_DB:-retailpulse}
+    POSTGRES_PORT: 5432
+  volumes:
+    - ./airflow/dags:/opt/airflow/dags
+    - ./airflow/plugins:/opt/airflow/plugins
+    - ./ingestion:/opt/airflow/ingestion
+    - ./dbt:/opt/dbt
+    - ./great_expectations:/opt/great_expectations
+    - ./data:/opt/airflow/data
+    - airflow-logs:/opt/airflow/logs
+  user: "${AIRFLOW_UID:-50000}:0"
+  depends_on: &airflow-common-depends-on
+    postgres-airflow:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+
+services:
+  # ── Databases ────────────────────────────────────────────────────────────────
+  postgres-airflow:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - postgres-airflow-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 10s
+      retries: 5
+      start_period: 5s
+    restart: always
+
+  postgres-retailpulse:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-retailpulse}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-retailpulse}
+      POSTGRES_DB: ${POSTGRES_DB:-retailpulse}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-retailpulse-db:/var/lib/postgresql/data
+      - ./scripts/init_schemas.sql:/docker-entrypoint-initdb.d/init_schemas.sql
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER:-retailpulse}"]
+      interval: 10s
+      retries: 5
+      start_period: 5s
+    restart: always
+
+  redis:
+    image: redis:7
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 30s
+      retries: 50
+      start_period: 30s
+    restart: always
+
+  # ── Airflow ───────────────────────────────────────────────────────────────────
+  airflow-init:
+    <<: *airflow-common
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        mkdir -p /sources/logs /sources/dags /sources/plugins
+        chown -R "${AIRFLOW_UID:-50000}:0" /sources/{logs,dags,plugins}
+        exec /entrypoint airflow version
+    environment:
+      <<: *airflow-common-env
+      _AIRFLOW_DB_MIGRATE: 'true'
+      _AIRFLOW_WWW_USER_CREATE: 'true'
+      _AIRFLOW_WWW_USER_USERNAME: admin
+      _AIRFLOW_WWW_USER_PASSWORD: admin
+    user: "0:0"
+    volumes:
+      - airflow-logs:/sources/logs
+      - ./airflow/dags:/sources/dags
+      - ./airflow/plugins:/sources/plugins
+
+  airflow-webserver:
+    <<: *airflow-common
+    command: webserver
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: always
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-scheduler:
+    <<: *airflow-common
+    command: scheduler
+    restart: always
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-worker:
+    <<: *airflow-common
+    command: celery worker
+    restart: always
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-triggerer:
+    <<: *airflow-common
+    command: triggerer
+    restart: always
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+
+  # ── Dashboard ─────────────────────────────────────────────────────────────────
+  metabase:
+    image: metabase/metabase:latest
+    ports:
+      - "${METABASE_PORT:-3000}:3000"
+    volumes:
+      - metabase-data:/metabase-data
+    environment:
+      MB_DB_FILE: /metabase-data/metabase.db
+    depends_on:
+      postgres-retailpulse:
+        condition: service_healthy
+    restart: always
+
+volumes:
+  postgres-airflow-db:
+  postgres-retailpulse-db:
+  airflow-logs:
+  metabase-data:

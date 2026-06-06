@@ -1,0 +1,58 @@
+version: 2
+
+models:
+  - name: mart_daily_revenue
+    description: "Chiffre d'affaires journalier calculé sur les commandes livrées"
+    columns:
+      - name: order_date
+        description: "Date de la commande"
+        tests:
+          - not_null
+          - unique
+      - name: total_orders
+        description: "Nombre de commandes livrées ce jour"
+        tests:
+          - not_null
+      - name: total_revenue
+        description: "CA total du jour (somme des paiements)"
+        tests:
+          - not_null
+
+  - name: mart_orders_by_state
+    description: "Volume de commandes et taux de livraison par état brésilien"
+    columns:
+      - name: customer_state
+        description: "Code état brésilien (2 lettres)"
+        tests:
+          - not_null
+          - unique
+      - name: total_orders
+        description: "Nombre total de commandes"
+        tests:
+          - not_null
+
+  - name: mart_delivery_perf
+    description: "Performance de livraison moyenne par jour (délai réel vs estimation)"
+    columns:
+      - name: order_date
+        description: "Date de la commande"
+        tests:
+          - not_null
+          - unique
+      - name: avg_delivery_days
+        description: "Délai moyen de livraison en jours"
+        tests:
+          - not_null
+
+  - name: mart_review_scores
+    description: "Distribution des notes clients (1 à 5)"
+    columns:
+      - name: review_score
+        description: "Note (1-5)"
+        tests:
+          - not_null
+          - unique
+      - name: review_count
+        description: "Nombre d'avis pour cette note"
+        tests:
+          - not_null

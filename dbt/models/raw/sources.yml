@@ -1,0 +1,25 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: raw
+    description: "Tables brutes chargées depuis les CSV Olist par load_olist.py"
+    tables:
+      - name: orders
+        description: "Commandes Olist (~100k lignes, 2016-2018)"
+      - name: customers
+        description: "Clients associés aux commandes"
+      - name: products
+        description: "Catalogue produits"
+      - name: sellers
+        description: "Vendeurs marketplace"
+      - name: order_items
+        description: "Lignes de commande (produit, prix, frais de port)"
+      - name: payments
+        description: "Paiements par commande (peut être multi-lignes)"
+      - name: reviews
+        description: "Avis clients (note 1-5)"
+      - name: geolocation
+        description: "Géolocalisation par code postal brésilien"
+      - name: product_category_translation
+        description: "Traduction des catégories produits (portugais → anglais)"

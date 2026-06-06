@@ -1,0 +1,55 @@
+version: 2
+
+models:
+  - name: stg_orders
+    description: "Commandes nettoyées : dates converties en timestamp, filtrage des lignes invalides"
+    columns:
+      - name: order_id
+        description: "Identifiant unique de la commande"
+        tests:
+          - not_null
+          - unique
+      - name: customer_id
+        description: "Identifiant du client"
+        tests:
+          - not_null
+      - name: order_status
+        description: "Statut courant de la commande"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['delivered', 'shipped', 'canceled', 'invoiced',
+                       'processing', 'unavailable', 'created', 'approved']
+      - name: order_purchase_timestamp
+        description: "Horodatage de l'achat"
+        tests:
+          - not_null
+
+  - name: stg_customers
+    description: "Clients avec ville normalisée (initcap) et état en majuscules"
+    columns:
+      - name: customer_id
+        description: "Identifiant unique du client (lié à une commande)"
+        tests:
+          - not_null
+          - unique
+      - name: customer_state
+        description: "Code état brésilien (2 lettres majuscules)"
+        tests:
+          - not_null
+
+  - name: stg_order_items
+    description: "Lignes de commande avec prix et frais de port validés (>= 0)"
+    columns:
+      - name: order_id
+        description: "Identifiant de la commande"
+        tests:
+          - not_null
+      - name: price
+        description: "Prix de l'article"
+        tests:
+          - not_null
+      - name: freight_value
+        description: "Frais de port"
+        tests:
+          - not_null
