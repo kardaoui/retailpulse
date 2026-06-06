@@ -39,6 +39,10 @@ def load_csv(engine, csv_path: Path, table_name: str) -> None:
     """Charge un CSV dans raw.<table_name>, en remplaçant les données existantes."""
     logger.info("Chargement de %s → raw.%s", csv_path.name, table_name)
     df = pd.read_csv(csv_path, dtype=str, keep_default_na=False)
+    # DROP ... CASCADE supprime aussi les vues dbt qui dépendent de la table
+    # (rechargement idempotent) ; dbt_run_staging les recrée ensuite.
+    with engine.begin() as conn:
+        conn.execute(text(f'DROP TABLE IF EXISTS raw."{table_name}" CASCADE'))
     df.to_sql(table_name, engine, schema="raw", if_exists="replace", index=False)
     logger.info("raw.%s : %d lignes chargées", table_name, len(df))
 
